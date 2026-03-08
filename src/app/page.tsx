@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { TEAMS_2025 } from '@/lib/teams'
-import { getSeedForPickIndex } from '@/lib/draft'
 import Link from 'next/link'
 
 interface Player { id: string; name: string; draft_order: number }
@@ -16,7 +15,6 @@ export default function HomePage() {
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [standings, setStandings] = useState<Standing[]>([])
   const [activeTab, setActiveTab] = useState<'draft' | 'standings'>('draft')
-  const [activeSeed, setActiveSeed] = useState(1)
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -31,7 +29,6 @@ export default function HomePage() {
     setPlayers(allPlayers || [])
     setPicks(pickData || [])
     setDraftState(stateData)
-    if (stateData) setActiveSeed(getSeedForPickIndex(stateData.current_pick_number))
     setLoading(false)
   }, [])
 
@@ -61,12 +58,9 @@ export default function HomePage() {
     </div>
   )
 
-  const currentSeed = draftState ? getSeedForPickIndex(draftState.current_pick_number) : 1
   const currentPicker = players.find(p => p.id === draftState?.current_player_id)
   const playerPickMap: Record<string, Pick[]> = {}
   players.forEach(p => { playerPickMap[p.id] = picks.filter(pk => pk.player_id === p.id) })
-  const teamsForSeed = TEAMS_2025.filter(t => t.seed === activeSeed)
-  const pickedForSeed = picks.filter(p => p.seed === activeSeed)
 
   return (
     <div className="min-h-screen">
@@ -93,7 +87,7 @@ export default function HomePage() {
               <div>
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(240,237,232,0.5)' }}>On The Clock</p>
                 <p className="font-display text-3xl tracking-wide" style={{ color: 'var(--gold)' }}>⚡ {currentPicker?.name?.toUpperCase() || '...'}</p>
-                <p className="text-sm mt-0.5" style={{ color: 'rgba(240,237,232,0.5)' }}>Text your pick · Seed #{currentSeed}</p>
+                <p className="text-sm mt-0.5" style={{ color: 'rgba(240,237,232,0.5)' }}>Text any available team</p>
               </div>
               <div className="text-right">
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(240,237,232,0.5)' }}>Pick</p>
@@ -115,50 +109,35 @@ export default function HomePage() {
 
         {activeTab === 'draft' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <div className="mb-4">
-                <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'rgba(240,237,232,0.5)' }}>Seed Lines</p>
-                <div className="flex flex-wrap gap-2">
-                  {Array.from({ length: 16 }, (_, i) => i + 1).map(seed => {
-                    const complete = picks.filter(p => p.seed === seed).length === 4
-                    const isCurrent = seed === currentSeed && !draftState?.is_complete
-                    return (
-                      <button key={seed} onClick={() => setActiveSeed(seed)}
-                        className="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                        style={{ background: activeSeed === seed ? 'var(--accent)' : complete ? 'rgba(245,166,35,0.2)' : 'rgba(255,255,255,0.07)', color: activeSeed === seed ? 'white' : complete ? 'var(--gold)' : 'var(--chalk)', border: isCurrent ? '2px solid var(--gold)' : '2px solid transparent' }}>
-                        {seed}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-xl tracking-wide">SEED #{activeSeed}</h2>
-                  <span className="text-sm" style={{ color: 'rgba(240,237,232,0.5)' }}>{pickedForSeed.length}/4 picked</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {teamsForSeed.map(team => {
-                    const pick = pickedForSeed.find(p => p.team_name === team.name)
-                    const pickedBy = pick ? players.find(p => p.id === pick.player_id) : null
-                    return (
-                      <div key={team.name} className={`team-card ${pick ? 'taken' : ''}`} style={{ cursor: 'default' }}>
-                        <div className="seed-badge" style={{ background: pick ? 'rgba(255,255,255,0.15)' : undefined }}>{team.seed}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{team.name}</p>
-                          <p className="text-xs" style={{ color: 'rgba(240,237,232,0.4)' }}>{team.region}</p>
-                        </div>
-                        {pickedBy && (
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(240,237,232,0.6)' }}>
-                            {pickedBy.name}{pick?.auto_assigned ? ' (auto)' : ''}
-                          </span>
-                        )}
+            <div className="lg:col-span-2 flex flex-col gap-2">
+              {Array.from({ length: 16 }, (_, i) => i + 1).map(seed => {
+                const teamsForSeed = TEAMS_2025.filter(t => t.seed === seed)
+                const pickedForSeed = picks.filter(p => p.seed === seed)
+                const complete = pickedForSeed.length === 4
+                return (
+                  <div key={seed} className="card py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="seed-badge" style={{ flexShrink: 0, background: complete ? 'rgba(245,166,35,0.2)' : undefined, color: complete ? 'var(--gold)' : undefined }}>{seed}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+                        {teamsForSeed.map(team => {
+                          const pick = pickedForSeed.find(p => p.team_name === team.name)
+                          const pickedBy = pick ? players.find(p => p.id === pick.player_id) : null
+                          return (
+                            <div key={team.name} className={`team-card ${pick ? 'taken' : ''}`} style={{ cursor: 'default', padding: '6px 10px' }}>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-xs truncate">{team.name}</p>
+                                <p className="text-xs truncate" style={{ color: 'rgba(240,237,232,0.4)', fontSize: '0.6rem' }}>
+                                  {team.region}{pickedBy ? ` · ${pickedBy.name}${pick?.auto_assigned ? ' (auto)' : ''}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
             <div className="flex flex-col gap-4">

@@ -61,16 +61,15 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Advance draft state
-  const nextPickNumber = draftState.current_pick_number + (autoAssign.shouldAutoAssign ? 2 : 1)
-  const nextPlayerIndex = nextPickNumber % players!.length
+  // Advance draft state (auto-assign is free, doesn't use a turn)
+  const nextPickNumber = draftState.current_pick_number + 1
+  const { data: updatedPicks } = await supabase.from('picks').select('id')
+  const isDraftComplete = (updatedPicks?.length || 0) >= 64
   // Snake: even rounds go forward, odd rounds go backward
   const round = Math.floor(nextPickNumber / players!.length)
   const posInRound = nextPickNumber % players!.length
   const nextPlayerIdx = round % 2 === 0 ? posInRound : players!.length - 1 - posInRound
   const nextPlayerId = players?.[nextPlayerIdx]?.id
-
-  const isDraftComplete = nextPickNumber >= 64
 
   await supabase.from('draft_state').update({
     current_pick_number: nextPickNumber,

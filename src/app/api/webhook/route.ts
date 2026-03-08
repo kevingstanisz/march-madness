@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { TEAMS_2025 } from '@/lib/teams'
-import { getSeedForPickIndex, checkAutoAssign } from '@/lib/draft'
+import { checkAutoAssign } from '@/lib/draft'
 import { sendSMS } from '@/lib/twilio'
 
 const supabase = createClient(
@@ -57,12 +57,6 @@ export async function POST(req: NextRequest) {
     return twimlResponse(`❌ Couldn't find "${rawText}". Text the team name exactly, e.g. "Duke" or "Michigan State".`)
   }
 
-  // Check correct seed line
-  const currentSeed = getSeedForPickIndex(draftState.current_pick_number)
-  if (matchedTeam.seed !== currentSeed) {
-    return twimlResponse(`❌ You must pick a #${currentSeed} seed. ${matchedTeam.name} is a #${matchedTeam.seed} seed.`)
-  }
-
   // Check not already picked
   const alreadyPicked = picks?.find(p => p.team_name === matchedTeam.name)
   if (alreadyPicked) {
@@ -99,10 +93,10 @@ export async function POST(req: NextRequest) {
     autoAssignMsg = `\n🤖 ${autoPlayer?.name} auto-got ${autoAssign.team}.`
   }
 
-  // Advance draft state
-  const pickIncrement = autoAssign.shouldAutoAssign ? 2 : 1
-  const nextPickNumber = draftState.current_pick_number + pickIncrement
-  const isDraftComplete = nextPickNumber >= 64
+  // Advance draft state (auto-assign is free, doesn't use a turn)
+  const nextPickNumber = draftState.current_pick_number + 1
+  const { data: updatedPicks } = await supabase.from('picks').select('id')
+  const isDraftComplete = (updatedPicks?.length || 0) >= 64
 
   const round = Math.floor(nextPickNumber / (players?.length || 4))
   const posInRound = nextPickNumber % (players?.length || 4)

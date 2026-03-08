@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { TEAMS_2025 } from '@/lib/teams'
-import { getSeedForPickIndex } from '@/lib/draft'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -99,9 +98,8 @@ export default function AdminPage() {
     </div>
   )
 
-  const currentSeed = draftState ? getSeedForPickIndex(draftState.current_pick_number) : 1
   const currentPicker = players.find(p => p.id === draftState?.current_player_id)
-  const availableTeams = TEAMS_2025.filter(t => t.seed === currentSeed && !picks.find(p => p.team_name === t.name))
+  const availableTeams = TEAMS_2025.filter(t => !picks.find(p => p.team_name === t.name)).sort((a, b) => a.seed - b.seed || a.name.localeCompare(b.name))
 
   return (
     <div className="min-h-screen">
@@ -143,7 +141,7 @@ export default function AdminPage() {
               <div>
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(240,237,232,0.5)' }}>On The Clock</p>
                 <p className="font-display text-2xl" style={{ color: 'var(--gold)' }}>{currentPicker?.name}</p>
-                <p className="text-sm" style={{ color: 'rgba(240,237,232,0.5)' }}>Seed #{currentSeed} · Pick #{draftState.current_pick_number + 1}</p>
+                <p className="text-sm" style={{ color: 'rgba(240,237,232,0.5)' }}>Pick #{draftState.current_pick_number + 1}</p>
               </div>
               <button onClick={resetDraft} className="btn-ghost text-xs" style={{ color: 'var(--accent)' }}>Reset Draft</button>
             </div>
@@ -154,7 +152,7 @@ export default function AdminPage() {
           <div className="card">
             <h2 className="font-display text-xl tracking-wide mb-1">MAKE PICK (BACKUP)</h2>
             <p className="text-sm mb-4" style={{ color: 'rgba(240,237,232,0.5)' }}>
-              Use if a player can't text. Picking for: <strong style={{ color: 'var(--gold)' }}>{currentPicker?.name}</strong> · Seed #{currentSeed}
+              Use if a player can't text. Picking for: <strong style={{ color: 'var(--gold)' }}>{currentPicker?.name}</strong>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {availableTeams.map(team => (

@@ -18,21 +18,6 @@ export function getSnakeDraftOrder(playerOrder: string[]): string[] {
 }
 
 /**
- * Returns the current pick index given completed picks
- */
-export function getCurrentPickIndex(picks: { seed: number; player_id: string }[]): number {
-  return picks.length
-}
-
-/**
- * Returns which seed line is being drafted at pick index
- * Each seed has 4 teams, but we go one pick per seed per round
- */
-export function getSeedForPickIndex(pickIndex: number): number {
-  return Math.floor(pickIndex / TOTAL_PLAYERS) + 1
-}
-
-/**
  * Given a seed line and existing picks, returns teams not yet picked for that seed
  */
 export function getAvailableTeamsForSeed(
