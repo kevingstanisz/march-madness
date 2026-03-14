@@ -121,10 +121,15 @@ export async function POST(req: NextRequest) {
   }).eq('id', draftState.id)
 
   // Send push notification
+  const autoAssignCount = autoAssign.shouldAutoAssign && autoAssign.playerId
+    ? (updatedPicks || []).filter((p: any) => p.player_id === autoAssign.playerId).length
+    : 0
   const autoNotify = autoAssign.shouldAutoAssign && autoAssign.team && autoAssign.playerId
-    ? { team: autoAssign.team, playerName: players?.find(p => p.id === autoAssign.playerId)?.name || 'Someone' }
+    ? { team: autoAssign.team, playerName: players?.find(p => p.id === autoAssign.playerId)?.name || 'Someone', draftComplete: autoAssignCount >= 16 }
     : undefined
-  await notifyDraftPick(player.name, matchedTeam.name, matchedTeam.seed, nextPlayer?.name || '', autoNotify)
+  const pickerCount = (updatedPicks || []).filter((p: any) => p.player_id === player.id).length
+  const pickerDraftComplete = pickerCount >= 16
+  await notifyDraftPick(player.name, matchedTeam.name, matchedTeam.seed, nextPlayer?.name || '', autoNotify, pickerDraftComplete)
 
   // Respond to the sender via TwiML
   const confirmMsg = isDraftComplete

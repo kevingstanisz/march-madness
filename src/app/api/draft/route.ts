@@ -100,10 +100,15 @@ export async function POST(req: NextRequest) {
   // Send push notification
   const pickerName = playerNames[playerId] || 'A player'
   const nextName = nextPlayerId ? playerNames[nextPlayerId] : 'Nobody'
+  const autoAssignCount = autoAssign.shouldAutoAssign && autoAssign.playerId
+    ? (updatedPicks || []).filter((p: any) => p.player_id === autoAssign.playerId).length
+    : 0
   const autoNotify = autoAssign.shouldAutoAssign && autoAssign.team && autoAssign.playerId
-    ? { team: autoAssign.team, playerName: playerNames[autoAssign.playerId] || 'Someone' }
+    ? { team: autoAssign.team, playerName: playerNames[autoAssign.playerId] || 'Someone', draftComplete: autoAssignCount >= 16 }
     : undefined
-  await notifyDraftPick(pickerName, teamName, seed, nextName, autoNotify)
+  const pickerCount = (updatedPicks || []).filter((p: any) => p.player_id === playerId).length
+  const pickerDraftComplete = pickerCount >= 16
+  await notifyDraftPick(pickerName, teamName, seed, nextName, autoNotify, pickerDraftComplete)
 
   return NextResponse.json({ success: true, autoAssigned: autoAssign.shouldAutoAssign })
 }

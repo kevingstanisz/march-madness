@@ -87,6 +87,23 @@ export default function AdminPage() {
     setSubmitting(false)
   }
 
+  async function rollbackPick() {
+    if (!confirm('Rollback the last pick?')) return
+    const res = await fetch('/api/admin/rollback', { method: 'POST' })
+    const data = await res.json()
+    if (data.error) {
+      setMsg(`❌ ${data.error}`)
+    } else {
+      setMsg(`↩ Rolled back: ${data.rolledBack.join(', ')}`)
+      const [{ data: pickData }, { data: stateData }] = await Promise.all([
+        supabase.from('picks').select('*').order('pick_number'),
+        supabase.from('draft_state').select('*').single(),
+      ])
+      setPicks(pickData || [])
+      setDraftState(stateData)
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     router.push('/')
@@ -134,7 +151,10 @@ export default function AdminPage() {
           ) : draftState.is_complete ? (
             <div className="flex items-center justify-between">
               <p style={{ color: 'var(--gold)' }}>🏆 Draft complete!</p>
-              <button onClick={resetDraft} className="btn-ghost text-xs" style={{ color: 'var(--accent)' }}>Reset Draft</button>
+              <div className="flex gap-2">
+                <button onClick={rollbackPick} className="btn-ghost text-xs">↩ Rollback</button>
+                <button onClick={resetDraft} className="btn-ghost text-xs" style={{ color: 'var(--accent)' }}>Reset Draft</button>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-between flex-wrap gap-3">
@@ -143,7 +163,10 @@ export default function AdminPage() {
                 <p className="font-display text-2xl" style={{ color: 'var(--gold)' }}>{currentPicker?.name}</p>
                 <p className="text-sm" style={{ color: 'rgba(240,237,232,0.5)' }}>Pick #{draftState.current_pick_number + 1}</p>
               </div>
-              <button onClick={resetDraft} className="btn-ghost text-xs" style={{ color: 'var(--accent)' }}>Reset Draft</button>
+              <div className="flex gap-2">
+                <button onClick={rollbackPick} className="btn-ghost text-xs">↩ Rollback</button>
+                <button onClick={resetDraft} className="btn-ghost text-xs" style={{ color: 'var(--accent)' }}>Reset Draft</button>
+              </div>
             </div>
           )}
         </div>
