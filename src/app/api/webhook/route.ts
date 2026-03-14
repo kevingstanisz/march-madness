@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { TEAMS_2025 } from '@/lib/teams'
 import { checkAutoAssign } from '@/lib/draft'
-import { sendSMS } from '@/lib/twilio'
+import { notifyDraftPick } from '@/lib/ntfy'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,17 +109,8 @@ export async function POST(req: NextRequest) {
     is_complete: isDraftComplete,
   }).eq('id', draftState.id)
 
-  // Send SMS to all players
-  const phoneNumbers = players?.map(p => p.phone).filter(Boolean) || []
-  const nextMsg = isDraftComplete ? 'Draft is complete! 🎉' : `Up next: ${nextPlayer?.name}`
-  const broadcastMsg = `🏀 ${player.name} picked ${matchedTeam.name} (#${matchedTeam.seed} seed).${autoAssignMsg}\n${nextMsg}`
-  
-  // Send to all OTHER players (Twilio auto-responds to sender via TwiML)
-  const otherPhones = phoneNumbers.filter(p => {
-    const n = (p as string).replace(/\D/g, '').slice(-10)
-    return n !== fromPhone.replace(/\D/g, '').slice(-10)
-  })
-  await Promise.all(otherPhones.map(phone => sendSMS(phone as string, broadcastMsg)))
+  // Send push notification
+  await notifyDraftPick(player.name, matchedTeam.name, matchedTeam.seed, nextPlayer?.name || '')
 
   // Respond to the sender via TwiML
   const confirmMsg = isDraftComplete

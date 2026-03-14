@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { notifyDraftPick } from '@/lib/twilio'
+import { notifyDraftPick } from '@/lib/ntfy'
 import { checkAutoAssign } from '@/lib/draft'
 import { TEAMS_2025 } from '@/lib/teams'
 
@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
   const { data: allPicks } = await supabase.from('picks').select('*')
   const { data: players } = await supabase.from('players').select('*').order('draft_order')
   const playerOrder = players?.map((p: any) => p.id) || []
-  const phoneNumbers = players?.map((p: any) => p.phone).filter(Boolean) || []
   const playerNames = Object.fromEntries(players?.map((p: any) => [p.id, p.name]) || [])
 
   // Check auto-assign for this seed
@@ -77,10 +76,10 @@ export async function POST(req: NextRequest) {
     is_complete: isDraftComplete,
   }).eq('id', draftState.id)
 
-  // Send SMS notifications
+  // Send push notification
   const pickerName = playerNames[playerId] || 'A player'
   const nextName = nextPlayerId ? playerNames[nextPlayerId] : 'Nobody'
-  await notifyDraftPick(pickerName, teamName, seed, nextName, phoneNumbers)
+  await notifyDraftPick(pickerName, teamName, seed, nextName)
 
   return NextResponse.json({ success: true, autoAssigned: autoAssign.shouldAutoAssign })
 }
