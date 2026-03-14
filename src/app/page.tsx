@@ -148,26 +148,8 @@ export default function HomePage() {
         </div>
 
         {isMyTurn && (
-          <div className="card mb-6 slide-in" style={{ border: '1px solid var(--gold)' }}>
-            <h2 className="font-display text-xl tracking-wide mb-1" style={{ color: 'var(--gold)' }}>YOUR PICK</h2>
-            <p className="text-sm mb-4" style={{ color: 'rgba(240,237,232,0.5)' }}>Select a team then confirm</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 max-h-96 overflow-y-auto">
-              {availableTeams.map(team => (
-                <div key={team.name} onClick={() => setSelectedTeam(selectedTeam === team.name ? '' : team.name)}
-                  className={`team-card ${selectedTeam === team.name ? 'selected' : ''}`}>
-                  <div className="seed-badge">{team.seed}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{team.name}</p>
-                    <p className="text-xs truncate" style={{ color: 'rgba(240,237,232,0.4)' }}>{team.region}</p>
-                  </div>
-                  {selectedTeam === team.name && <span style={{ color: 'var(--accent)' }}>✓</span>}
-                </div>
-              ))}
-            </div>
-            <button onClick={makePick} disabled={!selectedTeam || submitting} className="btn-primary">
-              {submitting ? 'PICKING...' : selectedTeam ? `PICK ${selectedTeam.toUpperCase()}` : 'SELECT A TEAM'}
-            </button>
-            {pickMsg && <p className="mt-3 text-sm" style={{ color: pickMsg.startsWith('✅') ? 'var(--gold)' : 'var(--accent)' }}>{pickMsg}</p>}
+          <div className="mb-4 px-1">
+            <p className="text-sm" style={{ color: 'var(--gold)' }}>⚡ Your turn — tap any available team to pick</p>
           </div>
         )}
 
@@ -196,14 +178,20 @@ export default function HomePage() {
                         {teamsForSeed.map(team => {
                           const pick = pickedForSeed.find(p => p.team_name === team.name)
                           const pickedBy = pick ? players.find(p => p.id === pick.player_id) : null
+                          const isSelected = selectedTeam === team.name
+                          const isPickable = isMyTurn && !pick
                           return (
-                            <div key={team.name} className={`team-card ${pick ? 'taken' : ''}`} style={{ cursor: 'default', padding: '6px 10px' }}>
+                            <div key={team.name}
+                              onClick={() => isPickable && setSelectedTeam(isSelected ? '' : team.name)}
+                              className={`team-card ${pick ? 'taken' : ''} ${isSelected ? 'selected' : ''}`}
+                              style={{ cursor: isPickable ? 'pointer' : 'default', padding: '6px 10px', outline: isSelected ? '2px solid var(--gold)' : undefined }}>
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-xs truncate">{team.name}</p>
                                 <p className="text-xs truncate" style={{ color: 'rgba(240,237,232,0.4)', fontSize: '0.6rem' }}>
                                   {team.region}{pickedBy ? ` · ${pickedBy.name}${pick?.auto_assigned ? ' (auto)' : ''}` : ''}
                                 </p>
                               </div>
+                              {isSelected && <span style={{ color: 'var(--gold)', fontSize: '0.7rem' }}>✓</span>}
                             </div>
                           )
                         })}
@@ -303,6 +291,22 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {isMyTurn && selectedTeam && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4" style={{ background: 'var(--hardwood)', borderTop: '1px solid var(--gold)' }}>
+          <div className="max-w-5xl mx-auto flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(240,237,232,0.5)' }}>Selected</p>
+              <p className="font-display text-lg truncate" style={{ color: 'var(--gold)' }}>{selectedTeam}</p>
+            </div>
+            <button onClick={() => setSelectedTeam('')} className="btn-ghost text-sm px-3 py-2">Cancel</button>
+            <button onClick={makePick} disabled={submitting} className="btn-primary px-6">
+              {submitting ? 'PICKING...' : 'CONFIRM PICK'}
+            </button>
+          </div>
+          {pickMsg && <p className="text-center text-sm mt-2" style={{ color: pickMsg.startsWith('✅') ? 'var(--gold)' : 'var(--accent)' }}>{pickMsg}</p>}
+        </div>
+      )}
     </div>
   )
 }
