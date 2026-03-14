@@ -179,12 +179,13 @@ export default function HomePage() {
                           const pick = pickedForSeed.find(p => p.team_name === team.name)
                           const pickedBy = pick ? players.find(p => p.id === pick.player_id) : null
                           const isSelected = selectedTeam === team.name
-                          const isPickable = isMyTurn && !pick
+                          const alreadyHaveSeed = isMyTurn && !pick && picks.some(pk => pk.player_id === currentPlayer?.id && pk.seed === seed)
+                          const isPickable = isMyTurn && !pick && !alreadyHaveSeed
                           return (
                             <div key={team.name}
                               onClick={() => isPickable && setSelectedTeam(isSelected ? '' : team.name)}
                               className={`team-card ${pick ? 'taken' : ''} ${isSelected ? 'selected' : ''}`}
-                              style={{ cursor: isPickable ? 'pointer' : 'default', padding: '6px 10px', outline: isSelected ? '2px solid var(--gold)' : undefined }}>
+                              style={{ cursor: isPickable ? 'pointer' : 'default', padding: '6px 10px', outline: isSelected ? '2px solid var(--gold)' : undefined, opacity: alreadyHaveSeed ? 0.4 : undefined }}>
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-xs truncate">{team.name}</p>
                                 <p className="text-xs truncate" style={{ color: 'rgba(240,237,232,0.4)', fontSize: '0.6rem' }}>

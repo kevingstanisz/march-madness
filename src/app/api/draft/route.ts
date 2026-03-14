@@ -32,6 +32,16 @@ export async function POST(req: NextRequest) {
 
   if (existingPick) return NextResponse.json({ error: 'Team already picked' }, { status: 400 })
 
+  // Check player doesn't already have a team from this seed
+  const { data: playerSeedPick } = await supabase
+    .from('picks')
+    .select('id')
+    .eq('player_id', playerId)
+    .eq('seed', seed)
+    .single()
+
+  if (playerSeedPick) return NextResponse.json({ error: 'You already have a team from that seed line' }, { status: 400 })
+
   // Insert pick
   const { error: pickError } = await supabase.from('picks').insert({
     player_id: playerId,
