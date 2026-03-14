@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   // Respond to the sender via TwiML
   const confirmMsg = isDraftComplete
     ? `✅ ${matchedTeam.name} locked in! Draft complete! Check the standings.`
-    : `✅ ${matchedTeam.name} is yours!${autoAssignMsg}\n${nextMsg}`
+    : `✅ ${matchedTeam.name} is yours!${autoAssignMsg}\nUp next: ${nextPlayer?.name}`
 
   return twimlResponse(confirmMsg)
 }
