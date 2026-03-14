@@ -110,7 +110,10 @@ export async function POST(req: NextRequest) {
   }).eq('id', draftState.id)
 
   // Send push notification
-  await notifyDraftPick(player.name, matchedTeam.name, matchedTeam.seed, nextPlayer?.name || '')
+  const autoNotify = autoAssign.shouldAutoAssign && autoAssign.team && autoAssign.playerId
+    ? { team: autoAssign.team, playerName: players?.find(p => p.id === autoAssign.playerId)?.name || 'Someone' }
+    : undefined
+  await notifyDraftPick(player.name, matchedTeam.name, matchedTeam.seed, nextPlayer?.name || '', autoNotify)
 
   // Respond to the sender via TwiML
   const confirmMsg = isDraftComplete

@@ -79,7 +79,10 @@ export async function POST(req: NextRequest) {
   // Send push notification
   const pickerName = playerNames[playerId] || 'A player'
   const nextName = nextPlayerId ? playerNames[nextPlayerId] : 'Nobody'
-  await notifyDraftPick(pickerName, teamName, seed, nextName)
+  const autoNotify = autoAssign.shouldAutoAssign && autoAssign.team && autoAssign.playerId
+    ? { team: autoAssign.team, playerName: playerNames[autoAssign.playerId] || 'Someone' }
+    : undefined
+  await notifyDraftPick(pickerName, teamName, seed, nextName, autoNotify)
 
   return NextResponse.json({ success: true, autoAssigned: autoAssign.shouldAutoAssign })
 }
