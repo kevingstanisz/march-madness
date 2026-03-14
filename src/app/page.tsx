@@ -3,11 +3,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { TEAMS_2025 } from '@/lib/teams'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Player { id: string; name: string; draft_order: number }
 interface Pick { player_id: string; team_name: string; seed: number; pick_number: number; auto_assigned?: boolean }
 interface DraftState { current_player_id: string | null; current_pick_number: number; is_complete: boolean }
 interface Standing { id: string; name: string; points: number; teamsRemaining: number; pointsPossible: number; teams: { name: string; seed: number; eliminated: boolean }[] }
+interface CurrentPlayer { id: string; name: string }
 
 export default function HomePage() {
   const [players, setPlayers] = useState<Player[]>([])
@@ -19,6 +21,11 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [currentPlayer, setCurrentPlayer] = useState<CurrentPlayer | null>(null)
+  const [selectedTeam, setSelectedTeam] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [pickMsg, setPickMsg] = useState('')
+  const router = useRouter()
 
   const loadData = useCallback(async () => {
     const [{ data: allPlayers }, { data: pickData }, { data: stateData }] = await Promise.all([
@@ -44,6 +51,7 @@ export default function HomePage() {
   useEffect(() => {
     loadData()
     loadStandings()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setCurrentPlayer(d.player))
     const channel = supabase.channel('public-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'picks' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_state' }, loadData)
@@ -51,6 +59,34 @@ export default function HomePage() {
     const interval = setInterval(() => loadStandings(), 60000)
     return () => { supabase.removeChannel(channel); clearInterval(interval) }
   }, [loadData, loadStandings])
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    setCurrentPlayer(null)
+    router.refresh()
+  }
+
+  async function makePick() {
+    if (!selectedTeam || !draftState || !currentPlayer) return
+    setSubmitting(true)
+    setPickMsg('')
+    const team = TEAMS_2025.find(t => t.name === selectedTeam)
+    if (!team) { setSubmitting(false); return }
+    const res = await fetch('/api/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: currentPlayer.id, teamName: selectedTeam, seed: team.seed }),
+    })
+    const data = await res.json()
+    if (data.error) {
+      setPickMsg(`❌ ${data.error}`)
+    } else {
+      setPickMsg(`✅ ${selectedTeam} is yours!`)
+      setSelectedTeam('')
+      loadData()
+    }
+    setSubmitting(false)
+  }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -61,6 +97,8 @@ export default function HomePage() {
   const currentPicker = players.find(p => p.id === draftState?.current_player_id)
   const playerPickMap: Record<string, Pick[]> = {}
   players.forEach(p => { playerPickMap[p.id] = picks.filter(pk => pk.player_id === p.id) })
+  const isMyTurn = currentPlayer && draftState && !draftState.is_complete && currentPlayer.id === draftState.current_player_id
+  const availableTeams = TEAMS_2025.filter(t => !picks.find(p => p.team_name === t.name)).sort((a, b) => a.seed - b.seed || a.name.localeCompare(b.name))
 
   return (
     <div className="min-h-screen">
@@ -70,7 +108,17 @@ export default function HomePage() {
             <span className="text-2xl">🏀</span>
             <span className="font-display text-2xl tracking-wide" style={{ color: 'var(--accent)' }}>MARCH MADNESS</span>
           </div>
-          <Link href="/admin/login" className="btn-ghost text-xs py-1 px-3">Admin</Link>
+          <div className="flex items-center gap-3">
+            {currentPlayer ? (
+              <>
+                <span className="text-xs" style={{ color: 'rgba(240,237,232,0.5)' }}>{currentPlayer.name}</span>
+                <button onClick={logout} className="btn-ghost text-xs py-1 px-3">Sign Out</button>
+              </>
+            ) : (
+              <Link href="/login" className="btn-ghost text-xs py-1 px-3">Sign In</Link>
+            )}
+            <Link href="/admin/login" className="btn-ghost text-xs py-1 px-3">Admin</Link>
+          </div>
         </div>
       </header>
 
@@ -87,7 +135,9 @@ export default function HomePage() {
               <div>
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(240,237,232,0.5)' }}>On The Clock</p>
                 <p className="font-display text-3xl tracking-wide" style={{ color: 'var(--gold)' }}>⚡ {currentPicker?.name?.toUpperCase() || '...'}</p>
-                <p className="text-sm mt-0.5" style={{ color: 'rgba(240,237,232,0.5)' }}>Text any available team</p>
+                <p className="text-sm mt-0.5" style={{ color: 'rgba(240,237,232,0.5)' }}>
+                  {isMyTurn ? 'Your turn — pick below!' : 'Waiting on their pick...'}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(240,237,232,0.5)' }}>Pick</p>
@@ -96,6 +146,30 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {isMyTurn && (
+          <div className="card mb-6 slide-in" style={{ border: '1px solid var(--gold)' }}>
+            <h2 className="font-display text-xl tracking-wide mb-1" style={{ color: 'var(--gold)' }}>YOUR PICK</h2>
+            <p className="text-sm mb-4" style={{ color: 'rgba(240,237,232,0.5)' }}>Select a team then confirm</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 max-h-96 overflow-y-auto">
+              {availableTeams.map(team => (
+                <div key={team.name} onClick={() => setSelectedTeam(selectedTeam === team.name ? '' : team.name)}
+                  className={`team-card ${selectedTeam === team.name ? 'selected' : ''}`}>
+                  <div className="seed-badge">{team.seed}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{team.name}</p>
+                    <p className="text-xs truncate" style={{ color: 'rgba(240,237,232,0.4)' }}>{team.region}</p>
+                  </div>
+                  {selectedTeam === team.name && <span style={{ color: 'var(--accent)' }}>✓</span>}
+                </div>
+              ))}
+            </div>
+            <button onClick={makePick} disabled={!selectedTeam || submitting} className="btn-primary">
+              {submitting ? 'PICKING...' : selectedTeam ? `PICK ${selectedTeam.toUpperCase()}` : 'SELECT A TEAM'}
+            </button>
+            {pickMsg && <p className="mt-3 text-sm" style={{ color: pickMsg.startsWith('✅') ? 'var(--gold)' : 'var(--accent)' }}>{pickMsg}</p>}
+          </div>
+        )}
 
         <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid var(--net)' }}>
           {(['draft', 'standings'] as const).map(tab => (
