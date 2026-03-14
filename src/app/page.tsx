@@ -111,13 +111,13 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             {currentPlayer ? (
               <>
-                <span className="text-xs" style={{ color: 'rgba(240,237,232,0.5)' }}>{currentPlayer.name}</span>
-                <button onClick={logout} className="btn-ghost text-xs py-1 px-3">Sign Out</button>
+                <span className="hidden sm:inline text-xs" style={{ color: 'rgba(240,237,232,0.5)' }}>{currentPlayer.name}</span>
+                <button onClick={logout} className="btn-ghost text-xs py-1 px-3 whitespace-nowrap">Sign Out</button>
               </>
             ) : (
-              <Link href="/login" className="btn-ghost text-xs py-1 px-3">Sign In</Link>
+              <Link href="/login" className="btn-ghost text-xs py-1 px-3 whitespace-nowrap">Sign In</Link>
             )}
-            <Link href="/admin/login" className="btn-ghost text-xs py-1 px-3">Admin</Link>
+            <Link href="/admin/login" className="btn-ghost text-xs py-1 px-3 whitespace-nowrap">Admin</Link>
           </div>
         </div>
       </header>
