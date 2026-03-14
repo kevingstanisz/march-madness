@@ -175,17 +175,6 @@ export default function AdminPage() {
         )}
 
         <div className="card">
-          <h2 className="font-display text-xl tracking-wide mb-3">TWILIO WEBHOOK</h2>
-          <p className="text-sm mb-2" style={{ color: 'rgba(240,237,232,0.6)' }}>Set this as your Twilio number's incoming message webhook:</p>
-          <div className="p-3 rounded font-mono text-sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--gold)' }}>
-            https://YOUR-APP.vercel.app/api/webhook
-          </div>
-          <p className="text-xs mt-2" style={{ color: 'rgba(240,237,232,0.4)' }}>
-            Twilio Console → Phone Numbers → Active Numbers → your number → Messaging → Webhook URL (HTTP POST)
-          </p>
-        </div>
-
-        <div className="card">
           <h2 className="font-display text-xl tracking-wide mb-4">ALL PICKS ({picks.length}/64)</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {players.map(p => (
