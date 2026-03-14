@@ -70,15 +70,26 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Advance draft state (auto-assign is free, doesn't use a turn)
-  const nextPickNumber = draftState.current_pick_number + 1
-  const { data: updatedPicks } = await supabase.from('picks').select('id')
+  // Advance draft state — skip players who already have all 16 seeds
+  const { data: updatedPicks } = await supabase.from('picks').select('*')
   const isDraftComplete = (updatedPicks?.length || 0) >= 64
-  // Snake: even rounds go forward, odd rounds go backward
-  const round = Math.floor(nextPickNumber / players!.length)
-  const posInRound = nextPickNumber % players!.length
-  const nextPlayerIdx = round % 2 === 0 ? posInRound : players!.length - 1 - posInRound
-  const nextPlayerId = players?.[nextPlayerIdx]?.id
+  const n = players!.length
+
+  let nextPickNum = draftState.current_pick_number + 1
+  let nextPlayerId: string | null = null
+  if (!isDraftComplete) {
+    for (let i = 0; i < 64; i++) {
+      const round = Math.floor(nextPickNum / n)
+      const pos = nextPickNum % n
+      const idx = round % 2 === 0 ? pos : n - 1 - pos
+      const candidate = players?.[idx]
+      if (!candidate) break
+      const count = (updatedPicks || []).filter((p: any) => p.player_id === candidate.id).length
+      if (count < 16) { nextPlayerId = candidate.id; break }
+      nextPickNum++
+    }
+  }
+  const nextPickNumber = nextPickNum
 
   await supabase.from('draft_state').update({
     current_pick_number: nextPickNumber,
