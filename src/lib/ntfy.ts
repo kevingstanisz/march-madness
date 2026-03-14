@@ -19,7 +19,7 @@ export async function notifyDraftPick(
     await fetch(`https://ntfy.sh/${topic}`, {
       method: 'POST',
       headers: {
-        'Title': '🏀 March Madness Draft',
+        'Title': 'March Madness Draft',
         'Priority': 'default',
         'Content-Type': 'text/plain',
       },
