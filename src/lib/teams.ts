@@ -54,10 +54,8 @@ export const TEAMS_2025: { name: string; seed: number; region: string }[] = [
   // 11 seeds
   { name: "South Florida", seed: 11, region: "East" },
   { name: "VCU", seed: 11, region: "South" },
-  { name: "Texas", seed: 11, region: "West" },
-  { name: "NC State", seed: 11, region: "West" },
-  { name: "Miami (Ohio)", seed: 11, region: "Midwest" },
-  { name: "SMU", seed: 11, region: "Midwest" },
+  { name: "Texas/NC State", seed: 11, region: "West" },
+  { name: "Miami (Ohio)/SMU", seed: 11, region: "Midwest" },
   // 12 seeds
   { name: "Northern Iowa", seed: 12, region: "East" },
   { name: "McNeese", seed: 12, region: "South" },
@@ -80,11 +78,9 @@ export const TEAMS_2025: { name: string; seed: number; region: string }[] = [
   { name: "Tennessee State", seed: 15, region: "Midwest" },
   // 16 seeds
   { name: "Siena", seed: 16, region: "East" },
-  { name: "Prairie View A&M", seed: 16, region: "South" },
-  { name: "Lehigh", seed: 16, region: "South" },
+  { name: "Prairie View A&M/Lehigh", seed: 16, region: "South" },
   { name: "LIU", seed: 16, region: "West" },
-  { name: "UMBC", seed: 16, region: "Midwest" },
-  { name: "Howard", seed: 16, region: "Midwest" },
+  { name: "UMBC/Howard", seed: 16, region: "Midwest" },
 ]
 
 export function getTeamsBySeed(seed: number) {
