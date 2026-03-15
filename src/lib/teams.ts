@@ -37,12 +37,12 @@ export const TEAMS_2025: { name: string; seed: number; region: string }[] = [
   { name: "Miami", seed: 7, region: "West" },
   { name: "Kentucky", seed: 7, region: "Midwest" },
   // 8 seeds
-  { name: "TCU", seed: 8, region: "East" },
+  { name: "Ohio State", seed: 8, region: "East" },
   { name: "Clemson", seed: 8, region: "South" },
   { name: "Villanova", seed: 8, region: "West" },
   { name: "Georgia", seed: 8, region: "Midwest" },
   // 9 seeds
-  { name: "Ohio State", seed: 9, region: "East" },
+  { name: "TCU", seed: 9, region: "East" },
   { name: "Iowa", seed: 9, region: "South" },
   { name: "Utah State", seed: 9, region: "West" },
   { name: "Saint Louis", seed: 9, region: "Midwest" },
