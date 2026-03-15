@@ -39,17 +39,17 @@ export function checkAutoAssign(
   allTeams: { name: string; seed: number }[],
   playerOrder: string[]
 ): { shouldAutoAssign: boolean; team?: string; playerId?: string } {
-  const picksForSeed = picks.filter(p => p.seed === seed)
-  if (picksForSeed.length !== 3) return { shouldAutoAssign: false }
-
   const teamsForSeed = allTeams.filter(t => t.seed === seed)
+  const picksForSeed = picks.filter(p => p.seed === seed)
   const pickedTeams = picksForSeed.map(p => p.team_name)
-  const remainingTeam = teamsForSeed.find(t => !pickedTeams.includes(t.name))
-  if (!remainingTeam) return { shouldAutoAssign: false }
+  const remainingTeams = teamsForSeed.filter(t => !pickedTeams.includes(t.name))
+
+  // Auto-assign only when exactly 1 team and 1 player remain for this seed
+  if (remainingTeams.length !== 1) return { shouldAutoAssign: false }
 
   const pickedPlayerIds = picksForSeed.map(p => p.player_id)
   const remainingPlayer = playerOrder.find(pid => !pickedPlayerIds.includes(pid))
   if (!remainingPlayer) return { shouldAutoAssign: false }
 
-  return { shouldAutoAssign: true, team: remainingTeam.name, playerId: remainingPlayer }
+  return { shouldAutoAssign: true, team: remainingTeams[0].name, playerId: remainingPlayer }
 }
