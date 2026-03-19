@@ -76,6 +76,78 @@ function maxRemainingPoints(seed: number, wins: number): number {
   return path.slice(wins).reduce((sum, pts) => sum + pts, 0)
 }
 
+// Bracket pod per seed (within a region)
+function getPod(seed: number): string {
+  if ([1,8,9,16].includes(seed)) return 'A'
+  if ([4,5,12,13].includes(seed)) return 'B'
+  if ([3,6,11,14].includes(seed)) return 'C'
+  return 'D' // 2,7,10,15
+}
+
+function getHalf(seed: number): string {
+  return ['A','B'].includes(getPod(seed)) ? 'top' : 'bottom'
+}
+
+// Which round (0=R64..3=E8) two seeds in the SAME region first collide
+const R64_PAIRS = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]]
+function intraRegionConflictRound(s1: number, s2: number): number {
+  if (R64_PAIRS.some(p => p.includes(s1) && p.includes(s2))) return 0
+  if (getPod(s1) === getPod(s2)) return 1
+  if (getHalf(s1) === getHalf(s2)) return 2
+  return 3
+}
+
+// Compute max possible additional points for a set of surviving picks,
+// accounting for intra-region bracket conflicts (two picks that must face each other).
+function computeMaxPossible(
+  picks: { seed: number; region: string; wins: number }[]
+): number {
+  type AlivePick = { seed: number; region: string; wins: number; id: number }
+  let alive: AlivePick[] = picks.map((p, i) => ({ ...p, id: i }))
+  let total = 0
+
+  for (let round = 0; round < 6; round++) {
+    const nextAlive: AlivePick[] = []
+    const handled = new Set<number>()
+
+    for (const pick of alive) {
+      if (handled.has(pick.id)) continue
+
+      // Pick has already passed this round (wins already counted in `points`)
+      if (pick.wins > round) {
+        nextAlive.push(pick)
+        continue
+      }
+
+      // Find another alive pick in the same region that conflicts at this round
+      const conflict = alive.find(other =>
+        other.id !== pick.id &&
+        !handled.has(other.id) &&
+        other.region === pick.region &&
+        other.wins <= round &&
+        intraRegionConflictRound(pick.seed, other.seed) === round
+      )
+
+      if (!conflict) {
+        total += MAX_PTS_PATH[pick.seed]?.[round] ?? 0
+        nextAlive.push(pick)
+      } else {
+        handled.add(conflict.id)
+        // Keep whichever pick has higher max remaining from this round onward
+        const rem1 = maxRemainingPoints(pick.seed, round)
+        const rem2 = maxRemainingPoints(conflict.seed, round)
+        const winner = rem1 >= rem2 ? pick : conflict
+        total += MAX_PTS_PATH[winner.seed]?.[round] ?? 0
+        nextAlive.push(winner)
+      }
+    }
+
+    alive = nextAlive
+  }
+
+  return total
+}
+
 // Build a map of combined pick name → ESPN winner name from completed First Four games
 // e.g. "Texas/NC State" → "Texas"
 function buildFirstFourResolution(
@@ -147,11 +219,14 @@ export async function GET() {
     }
 
     const teamsRemaining = playerTeams.length - eliminatedPickNames.length
-    const pointsPossible = points + playerPicks.reduce((sum: number, p: any) => {
-      if (eliminatedPickNames.includes(p.team_name)) return sum
-      const wins = (teamWins[p.team_name] || []).length
-      return sum + maxRemainingPoints(p.seed, wins)
-    }, 0)
+    const survivingForMax = playerPicks
+      .filter((p: any) => !eliminatedPickNames.includes(p.team_name))
+      .map((p: any) => ({
+        seed: p.seed as number,
+        region: TEAMS_2025.find(t => t.name === p.team_name)?.region ?? 'Unknown',
+        wins: (teamWins[p.team_name] || []).length,
+      }))
+    const pointsPossible = points + computeMaxPossible(survivingForMax)
 
     return {
       id: player.id,
