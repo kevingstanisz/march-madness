@@ -23,6 +23,20 @@ const ESPN_NAME_MAP: Record<string, string> = {
   "Saint Mary's": "Saint Mary's",
 }
 
+// Maps every First Four ESPN team name → the combined pick name in our DB.
+// Both sides of each matchup are listed so we can detect play-in games and
+// look up seeds regardless of who won.
+const FIRST_FOUR: Record<string, string> = {
+  'Texas':        'Texas/NC State',
+  'NC State':     'Texas/NC State',
+  'UMBC':         'UMBC/Howard',
+  'Howard':       'UMBC/Howard',
+  'SMU':          'Miami (Ohio)/SMU',
+  'Miami OH':     'Miami (Ohio)/SMU',
+  'Prairie View': 'Prairie View A&M/Lehigh',
+  'Lehigh':       'Prairie View A&M/Lehigh',
+}
+
 // Normalize an ESPN team name to match TEAMS_2025 names
 function normalizeEspnName(espnName: string): string {
   return ESPN_NAME_MAP[espnName] || espnName
@@ -31,17 +45,17 @@ function normalizeEspnName(espnName: string): string {
 // Build a map of combined pick name → ESPN winner name from completed First Four games
 // e.g. "Texas/NC State" → "Texas"
 function buildFirstFourResolution(
-  completedGames: { winner?: string; loser?: string }[],
-  combinedPickNames: string[]
+  completedGames: { winner?: string; loser?: string }[]
 ): Record<string, string> {
   const resolution: Record<string, string> = {}
   for (const game of completedGames) {
     const w = game.winner!
     const l = game.loser!
-    const combined = combinedPickNames.find(
-      t => t.includes('/') && t.split('/').some(p => p.trim() === w) && t.split('/').some(p => p.trim() === l)
-    )
-    if (combined) resolution[combined] = w
+    const combinedW = FIRST_FOUR[w]
+    const combinedL = FIRST_FOUR[l]
+    if (combinedW && combinedW === combinedL) {
+      resolution[combinedW] = w
+    }
   }
   return resolution
 }
@@ -53,18 +67,14 @@ export async function GET() {
   const espnGames = await fetchMarchMadnessScores()
   const completedGames = espnGames.filter(g => g.completed && g.winner && g.loser)
 
-  const allPickedTeamNames = Array.from(new Set(picks?.map((p: any) => p.team_name) || []))
-  const combinedPickNames = allPickedTeamNames.filter(n => n.includes('/'))
-
   // Resolve First Four picks to actual winners (e.g. "Texas/NC State" → "Texas")
-  const firstFour = buildFirstFourResolution(completedGames, combinedPickNames)
+  const firstFour = buildFirstFourResolution(completedGames)
 
   // Skip First Four play-in games themselves (not worth points)
   const scoringGames = completedGames.filter(g => {
-    const combined = combinedPickNames.find(
-      t => t.split('/').some((p: string) => p.trim() === g.winner) && t.split('/').some((p: string) => p.trim() === g.loser)
-    )
-    return !combined
+    const combinedW = FIRST_FOUR[g.winner!]
+    const combinedL = FIRST_FOUR[g.loser!]
+    return !(combinedW && combinedW === combinedL)
   })
 
   const standings = players?.map((player: any) => {
@@ -87,6 +97,7 @@ export async function GET() {
       const winnerPick = playerTeams.find(t => t.matchName === espnWinner)
       if (winnerPick) {
         const loserTeam = TEAMS_2025.find(t => t.name === espnLoser)
+          ?? TEAMS_2025.find(t => t.name === FIRST_FOUR[game.loser!])
         if (loserTeam) {
           const pts = 17 - loserTeam.seed
           points += pts
