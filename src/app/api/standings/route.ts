@@ -51,7 +51,7 @@ export async function GET() {
   const espnGames = await fetchMarchMadnessScores()
   const completedGames = espnGames.filter(g => g.completed && g.winner && g.loser)
 
-  const allPickedTeamNames = [...new Set(picks?.map((p: any) => p.team_name) || [])]
+  const allPickedTeamNames = Array.from(new Set(picks?.map((p: any) => p.team_name) || []))
 
   const standings = players?.map((player: any) => {
     const playerPicks = picks?.filter((p: any) => p.player_id === player.id) || []
