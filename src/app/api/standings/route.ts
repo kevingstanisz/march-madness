@@ -62,7 +62,7 @@ export async function GET() {
   // Skip First Four play-in games themselves (not worth points)
   const scoringGames = completedGames.filter(g => {
     const combined = combinedPickNames.find(
-      t => t.split('/').some(p => p.trim() === g.winner) && t.split('/').some(p => p.trim() === g.loser)
+      t => t.split('/').some((p: string) => p.trim() === g.winner) && t.split('/').some((p: string) => p.trim() === g.loser)
     )
     return !combined
   })
