@@ -19,7 +19,12 @@ const ESPN_NAME_MAP: Record<string, string> = {
   'Kennesaw St': 'Kennesaw State',
   'N. Dakota St': 'North Dakota State',
   'North Dakota St': 'North Dakota State',
+  'N Dakota St': 'North Dakota State',
   'Cal Baptist': 'Cal Baptist',
+  'CA Baptist': 'Cal Baptist',
+  "Hawai'i": 'Hawaii',
+  'Long Island': 'LIU',
+  "St John's": "St. John's",
   "Saint Mary's": "Saint Mary's",
 }
 
