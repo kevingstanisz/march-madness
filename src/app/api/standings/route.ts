@@ -71,11 +71,6 @@ const MAX_PTS_PATH: Record<number, number[]> = {
   16: [   16,   9,  13,  15,  16,  16],
 }
 
-function maxRemainingPoints(seed: number, wins: number): number {
-  const path = MAX_PTS_PATH[seed] ?? []
-  return path.slice(wins).reduce((sum, pts) => sum + pts, 0)
-}
-
 // Bracket pod per seed (within a region)
 function getPod(seed: number): string {
   if ([1,8,9,16].includes(seed)) return 'A'
@@ -97,8 +92,11 @@ function intraRegionConflictRound(s1: number, s2: number): number {
   return 3
 }
 
-// Compute max possible additional points for a set of surviving picks,
-// accounting for intra-region bracket conflicts (two picks that must face each other).
+// Compute max possible additional points for a set of surviving picks.
+// Rules (proven optimal since conflicting picks always have equal future potential):
+//   2 of your picks face each other → higher seed number wins (earns 17 - lower seed)
+//   1 of your picks is playing      → your pick wins (earns MAX_PTS_PATH[seed][round])
+//   0 of your picks playing         → MAX_PTS_PATH encodes the best possible external opponent
 function computeMaxPossible(
   picks: { seed: number; region: string; wins: number }[]
 ): number {
@@ -112,14 +110,8 @@ function computeMaxPossible(
 
     for (const pick of alive) {
       if (handled.has(pick.id)) continue
+      if (pick.wins > round) { nextAlive.push(pick); continue }
 
-      // Pick has already passed this round (wins already counted in `points`)
-      if (pick.wins > round) {
-        nextAlive.push(pick)
-        continue
-      }
-
-      // Find another alive pick in the same region that conflicts at this round
       const conflict = alive.find(other =>
         other.id !== pick.id &&
         !handled.has(other.id) &&
@@ -129,16 +121,13 @@ function computeMaxPossible(
       )
 
       if (!conflict) {
+        // Only your pick is playing — use theoretical best external opponent
         total += MAX_PTS_PATH[pick.seed]?.[round] ?? 0
         nextAlive.push(pick)
       } else {
+        // Two of your picks face each other — higher seed number wins
         handled.add(conflict.id)
-        // When two picks face each other, the conflict round points are 17 - loser.seed
-        // (not the theoretical best-opponent from MAX_PTS_PATH).
-        // Compare: pts if pick wins vs pts if conflict wins, then keep the better outcome.
-        const ifPickWins    = (17 - conflict.seed) + maxRemainingPoints(pick.seed,     round + 1)
-        const ifConflictWins = (17 - pick.seed)    + maxRemainingPoints(conflict.seed, round + 1)
-        const winner = ifPickWins >= ifConflictWins ? pick : conflict
+        const winner = pick.seed > conflict.seed ? pick : conflict
         const loser  = winner === pick ? conflict : pick
         total += 17 - loser.seed
         nextAlive.push(winner)
