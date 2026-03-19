@@ -33,21 +33,24 @@ export async function fetchMarchMadnessScores(): Promise<GameResult[]> {
       const homeScore = parseInt(home.score || '0')
       const awayScore = parseInt(away.score || '0')
 
+      const homeName = home.team.shortDisplayName || home.team.displayName
+      const awayName = away.team.shortDisplayName || away.team.displayName
+
       let winner, loser
       if (completed) {
         if (homeScore > awayScore) {
-          winner = home.team.displayName
-          loser = away.team.displayName
+          winner = homeName
+          loser = awayName
         } else {
-          winner = away.team.displayName
-          loser = home.team.displayName
+          winner = awayName
+          loser = homeName
         }
       }
 
       games.push({
         id: event.id,
-        homeTeam: home.team.displayName,
-        awayTeam: away.team.displayName,
+        homeTeam: homeName,
+        awayTeam: awayName,
         homeScore,
         awayScore,
         status: comp.status?.type?.description || 'Unknown',
