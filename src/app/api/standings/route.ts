@@ -47,6 +47,35 @@ function normalizeEspnName(espnName: string): string {
   return ESPN_NAME_MAP[espnName] || espnName
 }
 
+// Max points a team can earn per round, indexed by wins already earned (0=R64, 1=R32, ..., 5=Championship).
+// Based on original bracket seeding — assumes the best possible (lowest-seeded) opponent at each stage.
+// Bracket pods per region: (1,16,8,9) | (4,13,5,12) | (3,14,6,11) | (2,15,7,10)
+// S16: Pod1/2 vs Pod3/4. E8: S16 winners. FF/Champ: cross-region best = 1-seed.
+const MAX_PTS_PATH: Record<number, number[]> = {
+  //       R64  R32  S16  E8   FF  Champ
+  1:  [    1,   9,  13,  15,  16,  16],
+  2:  [    2,  10,  14,  16,  16,  16],
+  3:  [    3,  11,  15,  16,  16,  16],
+  4:  [    4,  12,  16,  15,  16,  16],
+  5:  [    5,  13,  16,  15,  16,  16],
+  6:  [    6,  14,  15,  16,  16,  16],
+  7:  [    7,  15,  14,  16,  16,  16],
+  8:  [    8,  16,  13,  15,  16,  16],
+  9:  [    9,  16,  13,  15,  16,  16],
+  10: [   10,  15,  14,  16,  16,  16],
+  11: [   11,  14,  15,  16,  16,  16],
+  12: [   12,  13,  16,  15,  16,  16],
+  13: [   13,  12,  16,  15,  16,  16],
+  14: [   14,  11,  15,  16,  16,  16],
+  15: [   15,  10,  14,  16,  16,  16],
+  16: [   16,   9,  13,  15,  16,  16],
+}
+
+function maxRemainingPoints(seed: number, wins: number): number {
+  const path = MAX_PTS_PATH[seed] ?? []
+  return path.slice(wins).reduce((sum, pts) => sum + pts, 0)
+}
+
 // Build a map of combined pick name → ESPN winner name from completed First Four games
 // e.g. "Texas/NC State" → "Texas"
 function buildFirstFourResolution(
@@ -118,7 +147,11 @@ export async function GET() {
     }
 
     const teamsRemaining = playerTeams.length - eliminatedPickNames.length
-    const pointsPossible = points + (teamsRemaining * 8)
+    const pointsPossible = points + playerPicks.reduce((sum: number, p: any) => {
+      if (eliminatedPickNames.includes(p.team_name)) return sum
+      const wins = (teamWins[p.team_name] || []).length
+      return sum + maxRemainingPoints(p.seed, wins)
+    }, 0)
 
     return {
       id: player.id,
