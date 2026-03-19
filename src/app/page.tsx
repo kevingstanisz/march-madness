@@ -17,7 +17,7 @@ export default function HomePage() {
   const [picks, setPicks] = useState<Pick[]>([])
   const [draftState, setDraftState] = useState<DraftState | null>(null)
   const [standings, setStandings] = useState<Standing[]>([])
-  const [activeTab, setActiveTab] = useState<'draft' | 'standings'>('draft')
+  const [activeTab, setActiveTab] = useState<'draft' | 'standings'>('standings')
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
