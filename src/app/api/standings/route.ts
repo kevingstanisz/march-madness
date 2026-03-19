@@ -71,6 +71,22 @@ const MAX_PTS_PATH: Record<number, number[]> = {
   16: [   16,   9,  13,  15,  16,  16],
 }
 
+// Final Four bracket sides: East vs South, West vs Midwest
+const FF_SIDE: Record<string, string> = {
+  'East': 'A', 'South': 'A',
+  'West': 'B', 'Midwest': 'B',
+}
+
+// Which round two picks first collide (0=R64 .. 3=E8, 4=FF, 5=Champ)
+function getConflictRound(
+  p1: { seed: number; region: string },
+  p2: { seed: number; region: string }
+): number {
+  if (p1.region === p2.region) return intraRegionConflictRound(p1.seed, p2.seed)
+  if (FF_SIDE[p1.region] === FF_SIDE[p2.region]) return 4
+  return 5
+}
+
 // Bracket pod per seed (within a region)
 function getPod(seed: number): string {
   if ([1,8,9,16].includes(seed)) return 'A'
@@ -115,9 +131,8 @@ function computeMaxPossible(
       const conflict = alive.find(other =>
         other.id !== pick.id &&
         !handled.has(other.id) &&
-        other.region === pick.region &&
         other.wins <= round &&
-        intraRegionConflictRound(pick.seed, other.seed) === round
+        getConflictRound(pick, other) === round
       )
 
       if (!conflict) {
