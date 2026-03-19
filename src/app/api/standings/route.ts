@@ -133,11 +133,14 @@ function computeMaxPossible(
         nextAlive.push(pick)
       } else {
         handled.add(conflict.id)
-        // Keep whichever pick has higher max remaining from this round onward
-        const rem1 = maxRemainingPoints(pick.seed, round)
-        const rem2 = maxRemainingPoints(conflict.seed, round)
-        const winner = rem1 >= rem2 ? pick : conflict
-        total += MAX_PTS_PATH[winner.seed]?.[round] ?? 0
+        // When two picks face each other, the conflict round points are 17 - loser.seed
+        // (not the theoretical best-opponent from MAX_PTS_PATH).
+        // Compare: pts if pick wins vs pts if conflict wins, then keep the better outcome.
+        const ifPickWins    = (17 - conflict.seed) + maxRemainingPoints(pick.seed,     round + 1)
+        const ifConflictWins = (17 - pick.seed)    + maxRemainingPoints(conflict.seed, round + 1)
+        const winner = ifPickWins >= ifConflictWins ? pick : conflict
+        const loser  = winner === pick ? conflict : pick
+        total += 17 - loser.seed
         nextAlive.push(winner)
       }
     }
