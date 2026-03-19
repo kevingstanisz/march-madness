@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation'
 interface Player { id: string; name: string; draft_order: number }
 interface Pick { player_id: string; team_name: string; seed: number; pick_number: number; auto_assigned?: boolean }
 interface DraftState { current_player_id: string | null; current_pick_number: number; is_complete: boolean }
-interface Standing { id: string; name: string; points: number; teamsRemaining: number; pointsPossible: number; teams: { name: string; seed: number; eliminated: boolean }[] }
+interface TeamStanding { name: string; seed: number; eliminated: boolean; autoAssigned?: boolean; points: number; wins: { opponent: string; points: number }[] }
+interface Standing { id: string; name: string; points: number; teamsRemaining: number; pointsPossible: number; teams: TeamStanding[] }
 interface CurrentPlayer { id: string; name: string }
 
 export default function HomePage() {
@@ -263,11 +264,25 @@ export default function HomePage() {
                   {expandedPlayer === s.id && (
                     <div className="px-4 pb-4 slide-in" style={{ background: 'rgba(0,0,0,0.2)' }}>
                       <p className="text-xs uppercase tracking-widest mb-2 pt-3" style={{ color: 'rgba(240,237,232,0.4)' }}>Teams</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {s.teams.sort((a, b) => a.seed - b.seed).map(team => (
-                          <div key={team.name} className="flex items-center gap-2" style={{ opacity: team.eliminated ? 0.35 : 1 }}>
-                            <div className="seed-badge" style={{ width: 22, height: 22, fontSize: '0.65rem', background: team.eliminated ? 'rgba(255,255,255,0.15)' : undefined }}>{team.seed}</div>
-                            <span className="text-xs truncate" style={{ textDecoration: team.eliminated ? 'line-through' : 'none' }}>{team.name}</span>
+                      <div className="flex flex-col gap-1">
+                        {s.teams.sort((a, b) => b.points - a.points || a.seed - b.seed).map(team => (
+                          <div key={team.name} style={{ opacity: team.eliminated ? 0.4 : 1 }}>
+                            <div className="flex items-center gap-2">
+                              <div className="seed-badge" style={{ width: 22, height: 22, fontSize: '0.65rem', flexShrink: 0, background: team.eliminated ? 'rgba(255,255,255,0.15)' : undefined }}>{team.seed}</div>
+                              <span className="text-sm flex-1" style={{ textDecoration: team.eliminated ? 'line-through' : 'none' }}>{team.name}</span>
+                              {team.points > 0 && (
+                                <span className="font-display text-sm" style={{ color: 'var(--gold)' }}>+{team.points}</span>
+                              )}
+                            </div>
+                            {team.wins.length > 0 && (
+                              <div className="ml-8 mt-0.5 flex flex-col gap-0.5">
+                                {team.wins.map((w, wi) => (
+                                  <span key={wi} className="text-xs" style={{ color: 'rgba(240,237,232,0.35)' }}>
+                                    beat {w.opponent} +{w.points} pt{w.points !== 1 ? 's' : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

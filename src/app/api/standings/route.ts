@@ -59,6 +59,7 @@ export async function GET() {
 
     let points = 0
     const eliminatedTeams: string[] = []
+    const teamWins: Record<string, { opponent: string; points: number }[]> = {}
 
     for (const game of completedGames) {
       const winner = resolveTeamName(game.winner!, allPickedTeamNames)
@@ -66,7 +67,12 @@ export async function GET() {
 
       if (playerTeams.includes(winner)) {
         const loserTeam = TEAMS_2025.find(t => t.name === loser)
-        if (loserTeam) points += 17 - loserTeam.seed
+        if (loserTeam) {
+          const pts = 17 - loserTeam.seed
+          points += pts
+          if (!teamWins[winner]) teamWins[winner] = []
+          teamWins[winner].push({ opponent: loser, points: pts })
+        }
       }
       if (playerTeams.includes(loser) && !eliminatedTeams.includes(loser)) {
         eliminatedTeams.push(loser)
@@ -87,6 +93,8 @@ export async function GET() {
         seed: p.seed,
         eliminated: eliminatedTeams.includes(p.team_name),
         autoAssigned: p.auto_assigned,
+        points: (teamWins[p.team_name] || []).reduce((sum: number, w: any) => sum + w.points, 0),
+        wins: teamWins[p.team_name] || [],
       })),
     }
   }) || []
